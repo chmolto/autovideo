@@ -30,6 +30,7 @@ import java.io.ByteArrayInputStream
 class PlayerController(private val app: Context) {
 
     private val contextWrapper = MutableContextWrapper(app)
+    private val offscreen = OffscreenHost(app)
     val webView: WebView = WebView(contextWrapper)
     private val main = Handler(Looper.getMainLooper())
     private val script: String = buildScript()
@@ -38,6 +39,9 @@ class PlayerController(private val app: Context) {
     @Volatile var videoId: String? = null
         private set
     @Volatile private var autoplay = true
+
+    /** Solo para pruebas (versión debug): el vídeo suena siempre en silencio. */
+    @Volatile var testMuted = false
     var playing = false
         private set
     var title: String? = null
@@ -60,6 +64,7 @@ class PlayerController(private val app: Context) {
             setAcceptCookie(true)
             setCookie("https://www.youtube.com", "SOCS=CAI; Domain=.youtube.com; Path=/; Secure")
         }
+        if (BuildConfig.DEBUG) WebView.setWebContentsDebuggingEnabled(true)
         webView.setBackgroundColor(Color.BLACK)
         webView.settings.apply {
             javaScriptEnabled = true
@@ -118,24 +123,33 @@ class PlayerController(private val app: Context) {
 
     /** Muestra el reproductor dentro de [container]; [host] es el contexto de esa pantalla. */
     fun attach(host: Context, container: ViewGroup) {
+        // Al mover el WebView de pantalla, Chromium pausa el vídeo un instante: si sonaba, reanudarlo.
+        val wasPlaying = playing
         (webView.parent as? ViewGroup)?.removeView(webView)
         contextWrapper.baseContext = host
         container.addView(
             webView,
             FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
         )
+        if (wasPlaying) {
+            for (delay in RESUME_DELAYS_MS) main.postDelayed({ js("resumeAfterMove()") }, delay)
+        }
     }
 
-    /** Quita el reproductor de la pantalla; el vídeo sigue sonando. */
+    /**
+     * Quita el reproductor de la pantalla; el vídeo sigue sonando. El WebView se aparca en
+     * una pantalla invisible para que Chromium no lo pause ni frene sus temporizadores.
+     */
     fun detach() {
         savePosition()
-        (webView.parent as? ViewGroup)?.removeView(webView)
-        contextWrapper.baseContext = app
+        val (ctx, box) = offscreen.container()
+        if (webView.parent !== box) attach(ctx, box)
     }
 
     fun release() {
         main.removeCallbacks(positionSaver)
-        detach()
+        (webView.parent as? ViewGroup)?.removeView(webView)
+        offscreen.release()
         webView.destroy()
     }
 
@@ -164,6 +178,8 @@ class PlayerController(private val app: Context) {
     private inner class Bridge {
         @JavascriptInterface fun videoId(): String = this@PlayerController.videoId ?: ""
         @JavascriptInterface fun autoplay(): Boolean = this@PlayerController.autoplay
+        @JavascriptInterface fun testMuted(): Boolean = this@PlayerController.testMuted
+        @JavascriptInterface fun isDebug(): Boolean = BuildConfig.DEBUG
 
         @JavascriptInterface fun onState(isPlaying: Boolean) {
             main.post {
@@ -187,5 +203,6 @@ class PlayerController(private val app: Context) {
         const val TAG_ADBLOCK = "AutoVideo/AdBlock"
         private val YOUTUBE_ORIGINS = setOf("https://m.youtube.com", "https://www.youtube.com", "https://youtube.com")
         private val ALLOWED_HOST_SUFFIXES = listOf("youtube.com", "google.com", "youtu.be")
+        private val RESUME_DELAYS_MS = longArrayOf(250, 1000, 2500)
     }
 }

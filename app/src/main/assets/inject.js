@@ -8,6 +8,9 @@
   window.__autoVideoInstalled = true;
 
   var bridge = window.AutoVideoBridge;
+  // Modo de prueba (solo debug): volumen ínfimo (−80 dB), inaudible pero distinto de 0,
+  // porque Chromium trata el volumen 0 como "sin sonido" y lo pausa en segundo plano.
+  var TEST_VOLUME = 0.0001;
 
   // --- CSS (lo rellena la app con inject.css) ---
   var css = __AUTOVIDEO_CSS__;
@@ -46,10 +49,19 @@
     return !!p && (p.classList.contains('ad-showing') || p.classList.contains('ad-interrupting'));
   }
 
+  // Si el usuario pausa, no volver a arrancar el vídeo por nuestra cuenta.
+  var userPaused = false;
+  var autoplayUntil = 0;
+
   window.AutoVideo = {
-    toggle: function () { var v = video(); if (!v) return; if (v.paused) v.play(); else v.pause(); },
-    play: function () { var v = video(); if (v) v.play(); },
-    pause: function () { var v = video(); if (v) v.pause(); },
+    toggle: function () {
+      var v = video(); if (!v) return;
+      if (v.paused) { userPaused = false; v.play(); } else { userPaused = true; v.pause(); }
+    },
+    play: function () { var v = video(); userPaused = false; if (v) v.play(); },
+    pause: function () { var v = video(); userPaused = true; if (v) v.pause(); },
+    // Reanudar tras mover el reproductor de pantalla, salvo que el usuario lo haya pausado.
+    resumeAfterMove: function () { var v = video(); if (v && v.paused && !v.ended && !userPaused) v.play(); },
     seek: function (s) {
       var v = video();
       if (!v || adShowing()) return;
@@ -70,13 +82,24 @@
   document.addEventListener('play', report, true);
   document.addEventListener('playing', report, true);
   document.addEventListener('pause', report, true);
+  document.addEventListener('pause', function () {
+    if (bridge && bridge.isDebug()) console.log('[AutoVideo] pausa; userPaused=' + userPaused + ' ' + new Error().stack);
+  }, true);
   document.addEventListener('ended', report, true);
 
   // --- Bucle: anuncios, arranque automático, título, no pasar al siguiente vídeo ---
   var startedFor = null;
+  var debugTick = 0;
+  var rafCount = 0;
+  (function raf() { rafCount++; requestAnimationFrame(raf); })();
   var lastTitle = null;
   setInterval(function () {
     var v = video();
+    if (bridge && bridge.isDebug() && ++debugTick % 7 === 0) {
+      console.log('[AutoVideo] video=' + !!v + (v ? ' ready=' + v.readyState + ' paused=' + v.paused +
+        ' t=' + v.currentTime.toFixed(1) + ' muted=' + v.muted + ' vol=' + v.volume : '') + ' ad=' + adShowing() +
+        ' raf=' + rafCount + ' started=' + startedFor + ' url=' + location.href);
+    }
     if (!v) return;
 
     if (adShowing()) {
@@ -87,7 +110,17 @@
       ).forEach(function (b) { b.click(); });
       return;
     }
-    if (v.__autoVideoMuted) { v.__autoVideoMuted = false; v.muted = false; }
+    // YouTube móvil arranca los vídeos silenciados ("toca para activar el sonido"):
+    // quitar el silencio, que además evita que Chromium lo pause al dejar de verse.
+    var mp = document.getElementById('movie_player');
+    var silent = bridge && bridge.testMuted();
+    if (silent) { if (mp && mp.setVolume) mp.setVolume(0); v.volume = TEST_VOLUME; }
+    if (v.muted || v.__autoVideoMuted) {
+      v.__autoVideoMuted = false;
+      if (mp && mp.unMute) mp.unMute();
+      if (silent) v.volume = TEST_VOLUME;
+      v.muted = false;
+    }
 
     if (!bridge) return;
     var wanted = bridge.videoId();
@@ -98,10 +131,17 @@
       if (!v.paused) v.pause();
       return;
     }
-    // Primer arranque del vídeo pedido.
+    // Primer arranque del vídeo pedido. YouTube a veces lo pausa al inicializarse:
+    // durante 15 s se insiste mientras el usuario no lo haya pausado.
     if (wanted && startedFor !== wanted && v.readyState >= 1) {
       startedFor = wanted;
-      if (bridge.autoplay()) v.play(); else v.pause();
+      userPaused = !bridge.autoplay();
+      autoplayUntil = userPaused ? 0 : Date.now() + 15000;
+      if (userPaused) v.pause();
+    }
+    if (v.paused && !v.ended && !userPaused && Date.now() < autoplayUntil) {
+      var pr = v.play();
+      if (pr && pr.catch) pr.catch(function (e) { console.log('[AutoVideo] play() rechazado: ' + e); });
     }
     var title = document.title.replace(/ - YouTube$/, '');
     if (title && title !== lastTitle) { lastTitle = title; bridge.onTitle(title); }

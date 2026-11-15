@@ -2,6 +2,7 @@ package com.autovideo.app.car
 
 import android.app.Presentation
 import android.graphics.Color
+import android.graphics.Rect
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
 import android.util.Log
@@ -19,13 +20,15 @@ import com.autovideo.app.R
 /**
  * Convierte la superficie que da Android Auto en una "pantalla" Android normal
  * (VirtualDisplay + Presentation) donde se muestra el WebView del reproductor.
+ * El vídeo se ajusta a la zona visible (p. ej. el hueco izquierdo en la vista dividida).
  */
 class SurfaceBridge(private val carContext: CarContext) : SurfaceCallback {
 
     private var virtualDisplay: VirtualDisplay? = null
     private var presentation: Presentation? = null
-    private var root: FrameLayout? = null
+    private var content: FrameLayout? = null
     private var message: TextView? = null
+    private var visibleArea: Rect? = null
 
     private val player: PlayerController get() = Playback.player(carContext)
 
@@ -43,18 +46,37 @@ class SurfaceBridge(private val carContext: CarContext) : SurfaceCallback {
             DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY,
         )
         val p = Presentation(carContext, vd.display)
-        val box = FrameLayout(p.context).apply { setBackgroundColor(Color.BLACK) }
-        p.setContentView(box)
+        val root = FrameLayout(p.context).apply { setBackgroundColor(Color.BLACK) }
+        val box = FrameLayout(p.context)
+        root.addView(box, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        p.setContentView(root)
         p.show()
         virtualDisplay = vd
         presentation = p
-        root = box
+        content = box
+        applyVisibleArea()
         refresh()
+    }
+
+    override fun onVisibleAreaChanged(visibleArea: Rect) {
+        Log.d(PlayerController.TAG, "Zona visible $visibleArea")
+        this.visibleArea = Rect(visibleArea)
+        applyVisibleArea()
+    }
+
+    private fun applyVisibleArea() {
+        val box = content ?: return
+        val area = visibleArea ?: return
+        if (area.isEmpty) return
+        box.layoutParams = FrameLayout.LayoutParams(area.width(), area.height()).apply {
+            leftMargin = area.left
+            topMargin = area.top
+        }
     }
 
     /** Muestra el vídeo si hay uno, o el aviso de "comparte un vídeo". */
     fun refresh() {
-        val box = root ?: return
+        val box = content ?: return
         val p = presentation ?: return
         if (player.hasVideo) {
             message?.let { box.removeView(it) }
@@ -79,14 +101,14 @@ class SurfaceBridge(private val carContext: CarContext) : SurfaceCallback {
 
     /** Libera la pantalla virtual. El reproductor sigue vivo (audio de fondo). */
     fun release() {
-        val box = root
+        val box = content
         val current = Playback.currentOrNull
         if (box != null && current != null && current.webView.parent === box) current.detach()
         presentation?.dismiss()
         virtualDisplay?.release()
         presentation = null
         virtualDisplay = null
-        root = null
+        content = null
         message = null
     }
 }

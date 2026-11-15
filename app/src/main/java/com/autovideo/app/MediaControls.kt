@@ -4,9 +4,6 @@ import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
-import android.media.AudioAttributes
-import android.media.AudioFocusRequest
-import android.media.AudioManager
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
@@ -14,7 +11,11 @@ import androidx.core.app.NotificationCompat
 import androidx.media.app.NotificationCompat.MediaStyle
 
 /**
- * Controles de reproducción del sistema (coche y móvil), foco de audio y notificación.
+ * Controles de reproducción del sistema (coche y móvil) y notificación.
+ *
+ * El foco de audio NO se gestiona aquí: lo hace el propio WebView (AudioFocusDelegate de
+ * Chromium), que pausa el vídeo si otra app toma el sonido y baja el volumen en indicaciones
+ * breves. Pedirlo también desde aquí hacía que nos lo quitáramos a nosotros mismos.
  */
 class MediaControls(private val service: Service) {
 
@@ -36,45 +37,9 @@ class MediaControls(private val service: Service) {
         isActive = true
     }
 
-    private val audioManager = service.getSystemService(AudioManager::class.java)
-    private var hasFocus = false
-    private var resumeOnGain = false
-
-    private val focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-        .setAudioAttributes(
-            AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_MEDIA)
-                .setContentType(AudioAttributes.CONTENT_TYPE_MOVIE)
-                .build(),
-        )
-        // Indicaciones breves (p. ej. Maps): el sistema baja el volumen, no pausamos.
-        .setWillPauseWhenDucked(false)
-        .setOnAudioFocusChangeListener { change ->
-            when (change) {
-                AudioManager.AUDIOFOCUS_LOSS -> {
-                    hasFocus = false
-                    resumeOnGain = false
-                    player()?.pause()
-                }
-                AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
-                    resumeOnGain = player()?.playing == true
-                    player()?.pause()
-                }
-                AudioManager.AUDIOFOCUS_GAIN -> {
-                    hasFocus = true
-                    if (resumeOnGain) player()?.play()
-                    resumeOnGain = false
-                }
-            }
-        }
-        .build()
-
     fun update() {
         val p = player()
         val playing = p?.playing == true
-        if (playing && !hasFocus) {
-            hasFocus = audioManager.requestAudioFocus(focusRequest) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
-        }
         session.setPlaybackState(
             PlaybackStateCompat.Builder()
                 .setActions(
@@ -123,7 +88,6 @@ class MediaControls(private val service: Service) {
     }
 
     fun release() {
-        audioManager.abandonAudioFocusRequest(focusRequest)
         session.isActive = false
         session.release()
     }

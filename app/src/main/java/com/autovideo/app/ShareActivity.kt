@@ -14,6 +14,9 @@ class ShareActivity : Activity() {
             Intent.ACTION_VIEW -> intent.dataString
             else -> null
         }
+        if (BuildConfig.DEBUG && intent.getBooleanExtra(EXTRA_TEST_MUTED, false)) {
+            Playback.player(this).testMuted = true
+        }
         val id = text?.let { VideoLink.extractVideoId(it) }
         val message = when {
             id == null -> R.string.share_not_youtube
@@ -22,5 +25,10 @@ class ShareActivity : Activity() {
         }
         Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
         finish()
+    }
+
+    companion object {
+        /** Solo en debug: `adb shell am start ... --ez autovideo.test_muted true` para probar sin sonido. */
+        const val EXTRA_TEST_MUTED = "autovideo.test_muted"
     }
 }
