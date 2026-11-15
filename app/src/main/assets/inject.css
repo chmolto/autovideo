@@ -1,0 +1,42 @@
+/* AutoVídeo: solo el reproductor, a pantalla completa, sin anuncios.
+   Para ocultar algo más, añade su selector aquí. */
+
+html, body {
+  background: #000 !important;
+  overflow: hidden !important;
+}
+
+/* El reproductor ocupa toda la pantalla */
+#player-container-id, #player, .player-container, ytm-player,
+.html5-video-player, .html5-video-container {
+  position: fixed !important;
+  top: 0 !important; left: 0 !important;
+  width: 100vw !important; height: 100vh !important;
+  max-height: none !important;
+  margin: 0 !important; padding: 0 !important;
+  background: #000 !important;
+  z-index: 2147483000 !important;
+}
+video.html5-main-video, .html5-video-player video {
+  position: fixed !important;
+  top: 0 !important; left: 0 !important;
+  width: 100vw !important; height: 100vh !important;
+  object-fit: contain !important;
+}
+
+/* Interfaz de la página que no queremos en el coche */
+ytm-mobile-topbar-renderer, .mobile-topbar-header, header,
+ytm-pivot-bar-renderer, ytm-single-column-watch-next-results-renderer,
+ytm-item-section-renderer, ytm-engagement-panel, .watch-below-the-player,
+ytm-app-promo-renderer, ytm-consent-bump-v2-renderer,
+.player-controls-content, .ytp-chrome-bottom, .ytp-chrome-top,
+.ytp-autonav-endscreen-countdown-overlay, .ytp-ce-element, .ytp-endscreen-content {
+  display: none !important;
+}
+
+/* Anuncios */
+ytm-promoted-sparkles-web-renderer, ytm-promoted-video-renderer, ytm-companion-ad-renderer,
+ytm-banner-promo-renderer, ad-slot-renderer, ytm-ad-slot-renderer, #player-ads,
+.ytp-ad-overlay-container, .ytp-ad-image-overlay, .ytp-ad-module, .video-ads {
+  display: none !important;
+}
