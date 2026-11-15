@@ -4,7 +4,8 @@ App Android personal para ver vídeos de YouTube en la pantalla de Android Auto 
 
 - Eliges el vídeo en el móvil (Brave → Compartir → Más → **AutoVídeo**) y se reproduce en la pantalla del coche.
 - Solo el reproductor, a pantalla completa, sin anuncios (bloqueo propio, sin librerías de terceros).
-- Botones en el coche: pausa, −10 s, +10 s, recargar. Tocar el vídeo = pausa/reanudar.
+- Botones en el coche: pausa, −10 s, +10 s, recargar.
+- Barra de progreso: un toque la muestra; tocar en la barra salta a ese momento; tocar el vídeo pausa/reanuda.
 - El audio sigue si cambias a otra app en el coche (Maps, etc.).
 
 Diseño: [docs/2026-11-15-video-android-auto-design.md](docs/2026-11-15-video-android-auto-design.md) ·
@@ -53,12 +54,13 @@ En Android Auto → Ajustes para desarrolladores también conviene tener **Fuent
 2. `adb forward tcp:5277 tcp:5277`
 3. `%ANDROID_HOME%\extras\google\auto\desktop-head-unit.exe`
 
-En la versión **debug**, compartir con `--ez autovideo.test_muted true` reproduce en silencio (volumen −80 dB):
+La versión **debug** se instala aparte (`io.github.chmolto.autovideo.debug`, «AutoVídeo (pruebas)»).
+Compartir con `--ez autovideo.test_muted true` la reproduce **siempre silenciada** (vía `mute()` de YouTube):
 
 ```bash
 adb shell am start -a android.intent.action.SEND -t text/plain \
   --es android.intent.extra.TEXT "https://youtu.be/aqz-KE-bpKQ" --ez autovideo.test_muted true \
-  -n com.autovideo.app/.ShareActivity
+  -n io.github.chmolto.autovideo.debug/com.autovideo.app.ShareActivity
 ```
 
 Registro: `adb logcat | grep -E "AutoVideo|\[AutoVideo\]"` (bloqueos de anuncios en `AutoVideo/AdBlock`).
@@ -71,6 +73,15 @@ Registro: `adb logcat | grep -E "AutoVideo|\[AutoVideo\]"` (bloqueos de anuncios
 Si YouTube cambia su web y vuelven a salir anuncios, es ahí donde hay que tocar.
 
 ## Lecciones aprendidas
+
+- **Controlar el vídeo SIEMPRE con la API de YouTube** (`#movie_player`: `playVideo`, `pauseVideo`,
+  `seekTo`, `mute`). Si se toca el `<video>` directamente, el estado interno de YouTube no coincide
+  y lo vuelve a pausar.
+- **YouTube cree estar en "imagen en imagen"** si la ventana (`outerWidth×outerHeight`) es mucho
+  menor que la mayor pantalla/ventana que ha visto, y entonces pausa en cada actualización de
+  progreso. Como el reproductor pasa por pantallas de distinto tamaño, el script fija `screen.*` y
+  `outer*` a un valor constante.
+- No cambiar el volumen por código con el vídeo en marcha: YouTube reacciona pausando.
 
 - YouTube móvil arranca los vídeos **silenciados**: el script quita el silencio.
 - El WebView ya gestiona el **foco de audio** (Chromium); pedirlo también desde la app hacía que se pausara solo.

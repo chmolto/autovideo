@@ -19,8 +19,8 @@ android {
         applicationId = "io.github.chmolto.autovideo"
         minSdk = 29
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
     }
 
     signingConfigs {
@@ -35,6 +35,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Convive con la versión instalada vía UnknownAuto (firmada con otra clave).
+            applicationIdSuffix = ".debug"
+        }
         release {
             signingConfig = signingConfigs.findByName("upload")
             isMinifyEnabled = false

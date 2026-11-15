@@ -29,6 +29,7 @@ class MediaControls(private val service: Service) {
             override fun onRewind() { player()?.seekBy(-10) }
             override fun onSkipToNext() { player()?.seekBy(10) }
             override fun onSkipToPrevious() { player()?.seekBy(-10) }
+            override fun onSeekTo(pos: Long) { player()?.seekTo(pos / 1000.0) }
             override fun onStop() {
                 player()?.pause()
                 service.stopSelf()
@@ -46,11 +47,12 @@ class MediaControls(private val service: Service) {
                     PlaybackStateCompat.ACTION_PLAY or PlaybackStateCompat.ACTION_PAUSE or
                         PlaybackStateCompat.ACTION_PLAY_PAUSE or PlaybackStateCompat.ACTION_FAST_FORWARD or
                         PlaybackStateCompat.ACTION_REWIND or PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
-                        PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or PlaybackStateCompat.ACTION_STOP,
+                        PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or PlaybackStateCompat.ACTION_STOP or
+                        PlaybackStateCompat.ACTION_SEEK_TO,
                 )
                 .setState(
                     if (playing) PlaybackStateCompat.STATE_PLAYING else PlaybackStateCompat.STATE_PAUSED,
-                    PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                    ((p?.positionSeconds ?: 0.0) * 1000).toLong(),
                     1f,
                 )
                 .build(),
@@ -59,6 +61,7 @@ class MediaControls(private val service: Service) {
             MediaMetadataCompat.Builder()
                 .putString(MediaMetadataCompat.METADATA_KEY_TITLE, p?.title ?: service.getString(R.string.app_name))
                 .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, service.getString(R.string.app_name))
+                .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, ((p?.durationSeconds ?: 0.0) * 1000).toLong())
                 .build(),
         )
     }

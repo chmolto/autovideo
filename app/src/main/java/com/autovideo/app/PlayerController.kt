@@ -48,6 +48,14 @@ class PlayerController(private val app: Context) {
         private set
     val hasVideo: Boolean get() = videoId != null
 
+    /** Posición y duración del vídeo en segundos (0 si no se sabe o hay un anuncio). */
+    var positionSeconds = 0.0
+        private set
+    var durationSeconds = 0.0
+        private set
+    var adShowing = false
+        private set
+
     /** Se llama al cambiar play/pausa, el título o el vídeo. */
     var onStateChanged: ((playing: Boolean) -> Unit)? = null
 
@@ -55,6 +63,13 @@ class PlayerController(private val app: Context) {
         override fun run() {
             savePosition()
             main.postDelayed(this, 5_000)
+        }
+    }
+
+    private val statusPoller = object : Runnable {
+        override fun run() {
+            pollStatus()
+            main.postDelayed(this, 1_000)
         }
     }
 
@@ -107,13 +122,41 @@ class PlayerController(private val app: Context) {
         VideoStore.save(app, videoId, startSeconds, autoplay = false)
         main.removeCallbacks(positionSaver)
         main.postDelayed(positionSaver, 5_000)
+        main.removeCallbacks(statusPoller)
+        main.post(statusPoller)
+        positionSeconds = startSeconds.toDouble()
+        durationSeconds = 0.0
         onStateChanged?.invoke(playing)
     }
 
-    fun togglePlay() = js("toggle()")
+    /** Pausa o reanuda según el estado actual (mismo camino que los botones multimedia). */
+    fun togglePlay() = if (playing) pause() else play()
     fun play() = js("play()")
     fun pause() = js("pause()")
     fun seekBy(seconds: Int) = js("seek($seconds)")
+
+    /** Salta al segundo [seconds] del vídeo. */
+    fun seekTo(seconds: Double) {
+        positionSeconds = seconds
+        js("seekTo(${"%.2f".format(java.util.Locale.US, seconds)})")
+    }
+
+    private fun pollStatus() {
+        webView.evaluateJavascript("window.AutoVideo ? AutoVideo.status() : null") { result ->
+            if (result == null || result == "null") return@evaluateJavascript
+            try {
+                val o = JSONObject(result)
+                val oldDuration = durationSeconds
+                positionSeconds = o.optDouble("t", 0.0)
+                durationSeconds = o.optDouble("d", 0.0)
+                adShowing = o.optBoolean("ad", false)
+                // La duración llega tarde: avisar para que la tarjeta multimedia la muestre.
+                if (durationSeconds != oldDuration) onStateChanged?.invoke(playing)
+            } catch (e: Exception) {
+                Log.w(TAG, "Estado ilegible: $result")
+            }
+        }
+    }
 
     /** Vuelve a cargar el vídeo actual en el segundo en que iba. */
     fun reload() {
@@ -148,6 +191,7 @@ class PlayerController(private val app: Context) {
 
     fun release() {
         main.removeCallbacks(positionSaver)
+        main.removeCallbacks(statusPoller)
         (webView.parent as? ViewGroup)?.removeView(webView)
         offscreen.release()
         webView.destroy()
@@ -165,6 +209,7 @@ class PlayerController(private val app: Context) {
     }
 
     private fun js(call: String) {
+        if (BuildConfig.DEBUG) Log.d(TAG, "orden: $call")
         webView.evaluateJavascript("window.AutoVideo && AutoVideo.$call", null)
     }
 
