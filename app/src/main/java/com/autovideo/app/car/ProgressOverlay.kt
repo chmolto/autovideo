@@ -10,9 +10,9 @@ import android.graphics.Typeface
 import android.view.View
 
 /**
- * Barra de progreso dibujada sobre el vídeo en la pantalla del coche:
- * franja oscura abajo con la línea de progreso, un punto y "12:34 / 45:00".
- * Tocar sobre la franja salta a ese momento (lo decide [SurfaceBridge] con [fractionAt]).
+ * Progress bar drawn over the video on the car screen:
+ * a dark band at the bottom with the progress line, a knob and "12:34 / 45:00".
+ * Tapping the band seeks to that point ([SurfaceBridge] decides this via [fractionAt]).
  */
 class ProgressOverlay(context: Context) : View(context) {
 
@@ -46,8 +46,8 @@ class ProgressOverlay(context: Context) : View(context) {
     }
 
     /**
-     * Si (x, y) cae sobre la franja de la barra, la fracción del vídeo (0..1) en esa x;
-     * si no, null. Coordenadas relativas a esta vista.
+     * If (x, y) falls on the bar's band, the video fraction (0..1) at that x;
+     * otherwise null. Coordinates are relative to this view.
      */
     fun fractionAt(x: Float, y: Float): Float? {
         if (visibility != VISIBLE || duration <= 0 || y < height - bandHeight) return null
@@ -67,7 +67,7 @@ class ProgressOverlay(context: Context) : View(context) {
         val h = height.toFloat()
         canvas.drawRect(0f, h - bandHeight * 1.4f, width.toFloat(), h, shade)
         val label = when {
-            ad -> "Anuncio…"
+            ad -> "Ad…"
             duration > 0 -> "${format(position)} / ${format(duration)}"
             else -> format(position)
         }

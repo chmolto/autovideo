@@ -2,12 +2,12 @@ package com.autovideo.app
 
 import android.content.Context
 
-/** Punto central: un único reproductor por proceso y quién está pendiente de él. */
+/** Central hub: a single player per process and who is listening to it. */
 object Playback {
     private var controller: PlayerController? = null
     private val listeners = mutableSetOf<() -> Unit>()
 
-    /** true mientras la app está abierta en Android Auto. */
+    /** true while the app is open in Android Auto. */
     var carActive = false
 
     val currentOrNull: PlayerController? get() = controller
@@ -28,8 +28,8 @@ object Playback {
     fun removeListener(l: () -> Unit) { listeners -= l }
 
     /**
-     * Vídeo compartido desde el móvil. Si el coche está conectado se reproduce ya;
-     * si no, se guarda para cuando se abra la app en el coche. Devuelve true si ya suena.
+     * Video shared from the phone. If the car is connected, it plays right away;
+     * otherwise it is saved for when the app is opened in the car. Returns true if already playing.
      */
     fun share(ctx: Context, videoId: String): Boolean {
         if (carActive) {
@@ -40,7 +40,7 @@ object Playback {
         return false
     }
 
-    /** Carga el último vídeo guardado (o el compartido pendiente) si no es el que ya está puesto. */
+    /** Loads the last saved video (or the pending shared one) unless it is already loaded. */
     fun restoreIfEmpty(ctx: Context) {
         val p = player(ctx)
         val saved = VideoStore.load(ctx) ?: return

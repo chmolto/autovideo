@@ -1,170 +1,166 @@
-# App propia de vídeo (YouTube) para Android Auto — Diseño
+# Custom video (YouTube) app for Android Auto — Design
 
-Fecha: 2026-11-15
+Date: 2026-11-15
 
-## Por qué
+## Why
 
-El usuario quiere ver vídeos de YouTube en la pantalla del coche (Hyundai Kona 2020) cuando está
-aparcado o de acampada. Android Auto no lo permite, y la vía habitual (CarStream instalado con AAAD)
-no le inspira confianza: quiere **una app propia**, con código que podamos leer, sin depender de
-instaladores ni apps de terceros.
+The user wants to watch YouTube videos on the car screen (Hyundai Kona 2020) while parked or
+camping. Android Auto doesn't allow it, and the usual route (CarStream installed via AAAD) doesn't
+feel trustworthy to them: they want **their own app**, with code we can read, without relying on
+third-party installers or apps.
 
-Hoy ve YouTube en el móvil a través de la **web de YouTube en Brave**, con su cuenta iniciada y sin
-anuncios gracias al bloqueador de Brave. La app debe mantener esa experiencia "sin anuncios".
+Today they watch YouTube on the phone through the **YouTube website in Brave**, signed in to their
+account and ad-free thanks to Brave's blocker. The app must keep that "no ads" experience.
 
-## Contexto técnico
+## Technical context
 
-- Móvil: Google Pixel 9 (Android 16), conectado al PC por USB.
-- Coche: Hyundai Kona 2020, pantalla con Android Auto por cable. El usuario usa un **adaptador
-  inalámbrico** (convierte AA por cable en inalámbrico; no es un "AI box").
-- PC: Windows 11. No hay Java ni Android Studio ni SDK instalados.
-- Uso personal: la app se instala por ADB (sideload), nunca se publica en Play Store.
+- Phone: Google Pixel 9 (Android 16), connected to the PC over USB.
+- Car: Hyundai Kona 2020, wired Android Auto screen. The user uses a **wireless adapter**
+  (turns wired AA into wireless; it's not an "AI box").
+- PC: Windows 11. No Java, Android Studio or SDK installed.
+- Personal use: the app is installed over ADB (sideloaded) and never published on the Play Store.
 
-## Objetivos
+## Goals
 
-1. Reproducir en la pantalla del coche un vídeo de YouTube que el usuario elige en el móvil.
-2. Flujo de elección: en Brave (móvil, con su cuenta), el usuario pulsa **Compartir → nuestra app**
-   en un vídeo; el vídeo se abre en la pantalla del coche.
-3. Control básico **en la pantalla del coche**: tocar para pausar/reanudar y botones de la propia
-   app para avanzar/retroceder (ver "Pantalla del coche").
-4. Sin anuncios: bloqueo de publicidad propio (peticiones + saltar anuncios dentro del vídeo).
-5. Audio por los altavoces del coche (lo enruta Android Auto como cualquier audio multimedia).
-6. El móvil puede quedar guardado / con la pantalla apagada mientras se reproduce.
+1. Play a YouTube video, chosen by the user on the phone, on the car screen.
+2. Selection flow: in Brave (phone, signed in), the user taps **Share → our app** on a video; the
+   video opens on the car screen.
+3. Basic control **on the car screen**: tap to pause/resume, plus the app's own buttons to seek
+   forward/back (see "Car screen").
+4. No ads: custom ad blocking (requests + skipping in-video ads).
+5. Audio through the car speakers (Android Auto routes it like any other media audio).
+6. The phone can be put away / have its screen off during playback.
 
-## No-objetivos (primera versión)
+## Non-goals (first version)
 
-- **Sin cuenta de Google en la app.** Se asume y acepta: no se apunta el historial, no se ven vídeos
-  con restricción de edad o solo para miembros, recomendaciones genéricas. Posible fase 2.
-- Sin películas locales, Netflix u otras plataformas (posible fase posterior).
-- Sin búsqueda con teclado en la pantalla del coche (se elige en el móvil).
-- Sin publicación en Play Store.
+- **No Google account in the app.** Assumed and accepted: watch history isn't recorded, age-restricted
+  and members-only videos can't be watched, recommendations are generic. Possible phase 2.
+- No local movies, Netflix or other platforms (possible later phase).
+- No keyboard search on the car screen (videos are chosen on the phone).
+- No Play Store release.
 
-## Anti-objetivos (sería un fracaso aunque "funcione")
+## Anti-goals (would count as failure even if it "works")
 
-- Usar código o librerías de terceros opacos para obtener el vídeo (p. ej. NewPipeExtractor) o
-  instaladores tipo AAAD. Solo librerías oficiales de Android/Google (AndroidX).
-- Que aparezcan anuncios de forma habitual.
-- Que el usuario tenga que manejar el móvil para pausar o avanzar cuando ya está viendo el vídeo.
+- Using opaque third-party code or libraries to obtain the video (e.g. NewPipeExtractor) or
+  AAAD-style installers. Only official Android/Google libraries (AndroidX).
+- Ads showing up regularly.
+- The user having to handle the phone to pause or seek once the video is playing.
 
-## Enfoques considerados
+## Approaches considered
 
-En todos, la app se declara ante Android Auto como **app de navegación** (Car App Library de
-AndroidX, categoría `NAVIGATION`), porque es el único tipo de app que recibe una superficie libre
-(`Surface`) donde dibujar en la pantalla del coche.
+In all of them, the app registers with Android Auto as a **navigation app** (AndroidX Car App
+Library, `NAVIGATION` category), because that is the only app type that gets a free-form surface
+(`Surface`) to draw on the car screen.
 
-- **A) Web de YouTube dentro de la app, dibujada en la superficie del coche** — ELEGIDO.
-  La app carga la web móvil de YouTube en un `WebView` que se muestra en la pantalla del coche, con
-  bloqueo de anuncios propio. Ventajas: móvil libre, control desde el coche, experiencia diseñada
-  para el coche, solo código propio + AndroidX. Coste: el bloqueo de anuncios habrá que retocarlo
-  cuando YouTube cambie.
-- **B) Espejo de Brave en la pantalla del coche** (captura de pantalla de una sola app con
-  MediaProjection). Más sencillo y reutiliza Brave tal cual, pero pide permiso de grabación cada vez,
-  el móvil debe estar encendido/desbloqueado/en horizontal, se controla desde el móvil y deja franjas
-  negras. Descartado por el usuario.
-- **C) Extraer el flujo de vídeo con NewPipeExtractor y reproducirlo con ExoPlayer.** Sin anuncios y
-  muy fluido, pero depende de una librería de terceros que se rompe con frecuencia. Descartado
-  (choca con el anti-objetivo).
+- **A) YouTube website inside the app, drawn on the car surface** — CHOSEN.
+  The app loads the mobile YouTube site in a `WebView` shown on the car screen, with its own ad
+  blocking. Pros: phone stays free, control from the car, experience designed for the car, only
+  our own code + AndroidX. Cost: the ad blocking will need tweaking whenever YouTube changes.
+- **B) Mirror Brave onto the car screen** (single-app screen capture with MediaProjection).
+  Simpler and reuses Brave as is, but asks for recording permission every time, the phone must be
+  on/unlocked/in landscape, it's controlled from the phone and leaves black bars. Rejected by the user.
+- **C) Extract the video stream with NewPipeExtractor and play it with ExoPlayer.** Ad-free and
+  very smooth, but depends on a third-party library that breaks often. Rejected
+  (conflicts with the anti-goal).
 
-## Diseño
+## Design
 
-### Piezas
+### Components
 
-1. **CarAppService (categoría navegación)** — punto de entrada que Android Auto descubre.
-   Crea una `Session` y una `Screen` con plantilla de navegación (`NavigationTemplate` o
-   `MapWithContentTemplate`, la que encaje con el nivel de API del host).
-2. **Puente superficie → WebView.** Al recibir la superficie (`SurfaceCallback.onSurfaceAvailable`),
-   se crea un `VirtualDisplay` del tamaño/densidad de esa superficie y sobre él un `Presentation`
-   que contiene el `WebView`. Así el `WebView` (y su vídeo) se pinta en la pantalla del coche.
-   Al perder la superficie se liberan `VirtualDisplay` y `Presentation`, pero el `WebView` sigue
-   vivo (ver punto 9); al volver, se engancha al nuevo display.
-3. **WebView de YouTube.** Carga la web móvil (`m.youtube.com/watch?v=…`), JavaScript activado,
-   reproducción automática sin gesto (`mediaPlaybackRequiresUserGesture = false`), y el
-   reproductor ocupando toda la pantalla del coche (pantalla completa del vídeo por
-   `WebChromeClient.onShowCustomView` o CSS inyectado; a elegir por el constructor).
-4. **Bloqueo de anuncios** (dos capas):
-   - `shouldInterceptRequest`: devolver respuesta vacía para dominios/rutas de publicidad
-     (p. ej. `doubleclick.net`, `googlesyndication.com`, `googleadservices.com`,
-     `youtube.com/pagead/`, `/api/stats/ads`, `/ptracking`, `/get_midroll_`). Lista en un único
-     fichero fácil de editar.
-   - JavaScript/CSS inyectado al cargar: ocultar huecos de anuncio de la página y, si el reproductor
-     entra en modo anuncio (clase `ad-showing` o equivalente), silenciarlo, saltar al final del
-     anuncio y pulsar el botón "Saltar". Los selectores también en un único fichero.
-5. **Recepción por "Compartir".** Una `Activity` en el móvil con filtro `ACTION_SEND` (`text/plain`)
-   y también `ACTION_VIEW` para enlaces de YouTube. Extrae el ID del vídeo de `youtube.com/watch`,
-   `youtu.be/`, `youtube.com/shorts/` y `m.youtube.com`. Guarda el vídeo "pendiente" (estado en
-   memoria + persistido) y:
-   - si la sesión del coche está activa → lo carga en el coche al instante;
-   - si no → lo deja preparado y muestra un aviso ("Abre la app en la pantalla del coche").
-   La `Activity` se cierra sola enseguida; no hay interfaz en el móvil más allá de eso.
-6. **La pantalla del coche es solo reproductor (decisión del usuario).** Nada de navegar por
-   YouTube en el coche: CSS inyectado oculta toda la interfaz de la página excepto el vídeo, que
-   ocupa la pantalla entera. Un toque en la superficie (`SurfaceCallback.onClick`) = pausar/reanudar.
-   No hace falta reenviar desplazamientos ni toques precisos al `WebView`.
-7. **Pantalla del coche: botones de la app** (barra de acciones de la plantilla, máximo ~4):
-   Pausa/Reanudar, −10 s, +10 s, y Recargar (vuelve a cargar el vídeo actual en el segundo en que
-   iba). Implementados con JavaScript sobre el elemento `<video>`. Sin vídeo cargado, la pantalla
-   muestra un aviso: "Comparte un vídeo desde el móvil".
-8. **Sin vigilancia de velocidad (decisión del usuario).** La app no lee la velocidad del coche ni
-   el GPS y no bloquea el vídeo en marcha: el usuario se responsabiliza de usarla solo aparcado.
-   No se piden permisos de ubicación.
-9. **Audio de fondo (decisión del usuario).** Si el usuario cambia a otra app en la pantalla del
-   coche (Maps, Spotify…) o el host retira la superficie, el vídeo **sigue sonando** como un
-   podcast. Implicaciones:
-   - El `WebView` no vive atado a la superficie: lo posee un servicio en primer plano
-     (foreground service de tipo `mediaPlayback`) y se vuelve a enganchar a un nuevo
-     `VirtualDisplay`/`Presentation` cuando la superficie vuelve. Mientras no hay superficie, el
-     `WebView` sigue vivo fuera de pantalla (sin destruirse ni pausarse: no llamar a
-     `onPause()`/`pauseTimers()`).
-   - `MediaSession` para que aparezcan controles de reproducción (pausa/reanudar, ±10 s) en la
-     pantalla del coche y en el móvil, y gestión del foco de audio: si otra app toma el audio
-     (p. ej. Spotify empieza a sonar), nuestro vídeo se pausa; una indicación breve de navegación
-     solo baja el volumen.
-   - Notificación del servicio en el móvil con Pausa/Reanudar y Detener.
-   - Al desconectar Android Auto por completo, se pausa y se cierra el servicio.
-10. **Fin del vídeo.** Cuando el vídeo termina, se para (sin reproducción automática del siguiente).
+1. **CarAppService (navigation category)** — the entry point Android Auto discovers.
+   Creates a `Session` and a `Screen` with a navigation template (`NavigationTemplate` or
+   `MapWithContentTemplate`, whichever fits the host's API level).
+2. **Surface → WebView bridge.** When the surface arrives (`SurfaceCallback.onSurfaceAvailable`),
+   a `VirtualDisplay` matching the surface's size/density is created, and on it a `Presentation`
+   containing the `WebView`. That way the `WebView` (and its video) is drawn on the car screen.
+   When the surface is lost, the `VirtualDisplay` and `Presentation` are released, but the `WebView`
+   stays alive (see item 9); when the surface returns, it is attached to the new display.
+3. **YouTube WebView.** Loads the mobile site (`m.youtube.com/watch?v=…`), JavaScript enabled,
+   autoplay without a user gesture (`mediaPlaybackRequiresUserGesture = false`), and the player
+   filling the whole car screen (video fullscreen via `WebChromeClient.onShowCustomView` or
+   injected CSS; the builder's choice).
+4. **Ad blocking** (two layers):
+   - `shouldInterceptRequest`: return an empty response for ad domains/paths
+     (e.g. `doubleclick.net`, `googlesyndication.com`, `googleadservices.com`,
+     `youtube.com/pagead/`, `/api/stats/ads`, `/ptracking`, `/get_midroll_`). The list lives in a
+     single, easy-to-edit file.
+   - JavaScript/CSS injected on load: hide ad slots on the page and, if the player enters ad mode
+     (`ad-showing` class or equivalent), mute it, seek to the end of the ad and click the "Skip"
+     button. The selectors also live in a single file.
+5. **Receiving via "Share".** An `Activity` on the phone with an `ACTION_SEND` (`text/plain`)
+   filter and also `ACTION_VIEW` for YouTube links. Extracts the video ID from `youtube.com/watch`,
+   `youtu.be/`, `youtube.com/shorts/` and `m.youtube.com`. Stores the "pending" video (in-memory
+   state + persisted) and:
+   - if the car session is active → loads it in the car immediately;
+   - if not → keeps it ready and shows a notice ("Ready: open AutoVideo on the car screen").
+   The `Activity` closes itself right away; there is no phone UI beyond that.
+6. **The car screen is a player only (user's decision).** No browsing YouTube in the car: injected
+   CSS hides the whole page UI except the video, which fills the entire screen. A tap on the surface
+   (`SurfaceCallback.onClick`) = pause/resume. No need to forward scrolls or precise taps to the
+   `WebView`.
+7. **Car screen: app buttons** (template action strip, ~4 max):
+   Pause/Resume, −10 s, +10 s, and Reload (reloads the current video at the second it was at).
+   Implemented with JavaScript on the `<video>` element. With no video loaded, the screen shows a
+   notice: "Share a video from your phone".
+8. **No speed monitoring (user's decision).** The app doesn't read the car's speed or GPS and doesn't
+   block the video while driving: the user takes responsibility for using it only while parked.
+   No location permissions are requested.
+9. **Background audio (user's decision).** If the user switches to another app on the car screen
+   (Maps, Spotify…) or the host removes the surface, the video **keeps playing** like a podcast.
+   Implications:
+   - The `WebView` isn't tied to the surface: it is owned by a foreground service (of type
+     `mediaPlayback`) and is re-attached to a new `VirtualDisplay`/`Presentation` when the surface
+     returns. While there is no surface, the `WebView` stays alive off-screen (not destroyed or
+     paused: don't call `onPause()`/`pauseTimers()`).
+   - `MediaSession` so playback controls (pause/resume, ±10 s) appear on the car screen and on the
+     phone, plus audio focus handling: if another app takes the audio (e.g. Spotify starts
+     playing), our video pauses; a short navigation prompt only lowers the volume.
+   - Service notification on the phone with Pause/Resume and Stop.
+   - When Android Auto disconnects completely, playback pauses and the service shuts down.
+10. **End of video.** When the video ends, it stops (no autoplay of the next one).
 
-### Construcción y pruebas
+### Build and testing
 
-- Kotlin + Gradle (wrapper), sin Android Studio. Instalación mínima en el PC: JDK 17 (winget) y
-  Android SDK command-line tools (plataforma, build-tools, platform-tools/ADB). Todo de fuentes
-  oficiales.
-- Pruebas en el PC con el **Desktop Head Unit (DHU)** de Google (simulador de pantalla de Android
-  Auto), conectado al Pixel por USB, antes de probar en el coche.
-- Instalación en el móvil con `adb install`. El usuario debe activar **"Fuentes desconocidas"** en los
-  ajustes de desarrollador de Android Auto (necesario para cualquier app que no venga de Play Store).
-- Para depuración: una forma de ver el log del bloqueo de anuncios (qué se bloqueó) con `adb logcat`.
+- Kotlin + Gradle (wrapper), no Android Studio. Minimal setup on the PC: JDK 17 (winget) and the
+  Android SDK command-line tools (platform, build-tools, platform-tools/ADB). All from official
+  sources.
+- Testing on the PC with Google's **Desktop Head Unit (DHU)** (Android Auto screen simulator),
+  connected to the Pixel over USB, before testing in the car.
+- Installation on the phone with `adb install`. The user must enable **"Unknown sources"** in
+  Android Auto's developer settings (required for any app that doesn't come from the Play Store).
+- For debugging: a way to see the ad-blocking log (what was blocked) with `adb logcat`.
 
-## Riesgos conocidos
+## Known risks
 
-- El adaptador inalámbrico puede limitar la fluidez del vídeo; si va a tirones, probar con cable.
-- YouTube cambia su web: el bloqueo de anuncios y los selectores necesitarán mantenimiento.
-- Google puede limitar en el futuro las apps de navegación instaladas fuera de Play Store.
-- Es posible que algunos toques no lleguen igual de precisos que en el móvil; por eso los botones
-  de la barra de acciones cubren lo esencial.
+- The wireless adapter may limit video smoothness; if it stutters, try a cable.
+- YouTube changes its site: the ad blocking and selectors will need maintenance.
+- Google may in the future restrict navigation apps installed outside the Play Store.
+- Some taps may not arrive as precisely as on the phone; that's why the action-strip buttons
+  cover the essentials.
 
-## Decidido por el usuario
+## Decided by the user
 
-- Enfoque A (web de YouTube en la superficie del coche).
-- Elegir el vídeo en Brave en el móvil y compartirlo a la app; nada de teclado en el coche.
-- Sin cuenta de Google en la primera versión.
-- Sin Android Studio: herramientas mínimas en el PC.
-- Sin vigilancia de velocidad: el usuario se responsabiliza de usarla aparcado.
-- Audio de fondo al cambiar de app en el coche (como un podcast).
-- Pantalla del coche = solo reproductor (navegar por YouTube en el coche, quizá más adelante).
+- Approach A (YouTube website on the car surface).
+- Pick the video in Brave on the phone and share it to the app; no keyboard in the car.
+- No Google account in the first version.
+- No Android Studio: minimal tooling on the PC.
+- No speed monitoring: the user takes responsibility for using it while parked.
+- Background audio when switching apps in the car (like a podcast).
+- Car screen = player only (browsing YouTube in the car, maybe later).
 
-## Decisiones propias (corregibles)
+## Our own decisions (open to change)
 
-- Web móvil de YouTube (`m.youtube.com`) en lugar de la de escritorio: se adapta mejor a pantallas
-  pequeñas y pesa menos.
-- Botones en la pantalla del coche: Pausa/Reanudar, −10 s, +10 s, Recargar; tocar el vídeo = pausa.
-- Al terminar el vídeo, se para (sin autoplay).
-- Si otra app toma el audio, nuestro vídeo se pausa; al desconectar Android Auto, se detiene.
-- Nombre de la app: "AutoVídeo" (provisional).
+- Mobile YouTube site (`m.youtube.com`) instead of desktop: it adapts better to small screens and
+  is lighter.
+- Buttons on the car screen: Pause/Resume, −10 s, +10 s, Reload; tapping the video = pause.
+- When the video ends, it stops (no autoplay).
+- If another app takes the audio, our video pauses; when Android Auto disconnects, it stops.
+- App name: "AutoVideo" (provisional).
 
-## Para el constructor
+## Left to the builder
 
-- Versiones concretas de SDK, AGP, Kotlin y Car App Library.
-- Plantilla exacta (`NavigationTemplate` vs `MapWithContentTemplate`) según el nivel de API del host.
-- Cómo forzar el reproductor a pantalla completa.
-- Lista inicial de dominios y selectores de anuncios.
-- Estructura de paquetes y nombre del paquete.
+- Exact versions of the SDK, AGP, Kotlin and the Car App Library.
+- Exact template (`NavigationTemplate` vs `MapWithContentTemplate`) depending on the host's API level.
+- How to force the player into fullscreen.
+- Initial list of ad domains and selectors.
+- Package structure and package name.

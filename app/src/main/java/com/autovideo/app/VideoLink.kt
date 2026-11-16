@@ -2,7 +2,7 @@ package com.autovideo.app
 
 import java.net.URI
 
-/** Saca el ID de un vídeo de YouTube de un texto compartido (puede llevar texto alrededor). */
+/** Extracts a YouTube video ID from shared text (which may contain surrounding text). */
 object VideoLink {
     private val ID = Regex("^[A-Za-z0-9_-]{11}$")
     private val URL_CANDIDATE = Regex("""(?:https?://)?[A-Za-z0-9.-]+\.[A-Za-z]{2,}(?:/\S*)?""")

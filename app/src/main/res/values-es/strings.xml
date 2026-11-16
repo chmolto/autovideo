@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">AutoVídeo</string>
+    <string name="instructions">Cómo se usa:\n\n1. En Brave, abre un vídeo de YouTube → Compartir → AutoVídeo.\n2. En la pantalla del coche, abre AutoVídeo.\n\nSi compartes con la app ya abierta en el coche, el vídeo empieza al momento.\n\nRequisito: en Android Auto → Ajustes para desarrolladores, activa «Fuentes desconocidas».\nÚsala solo con el coche parado.</string>
+    <string name="try_here">Probar aquí</string>
+    <string name="share_first">Primero comparte un vídeo desde Brave.</string>
+    <string name="share_not_youtube">Ese enlace no es de YouTube</string>
+    <string name="share_playing">Abierto en AutoVídeo</string>
+    <string name="share_saved">Listo: abre AutoVídeo en la pantalla del coche</string>
+    <string name="car_empty">Comparte un vídeo desde el móvil</string>
+    <string name="channel_name">Reproducción</string>
+    <string name="notification_text">Reproduciendo en AutoVídeo</string>
+    <string name="action_play">Reanudar</string>
+    <string name="action_pause">Pausa</string>
+    <string name="action_stop">Detener</string>
+    <string name="action_rewind">−10 s</string>
+    <string name="action_forward">+10 s</string>
+    <string name="action_reload">Recargar</string>
+</resources>

@@ -2,7 +2,7 @@ package com.autovideo.app
 
 import android.content.Context
 
-/** Último vídeo y posición, para retomarlo al abrir la app en el coche. */
+/** Last video and position, to resume it when the app is opened in the car. */
 object VideoStore {
     data class Saved(val videoId: String, val positionSeconds: Int, val autoplay: Boolean)
 

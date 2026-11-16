@@ -3,10 +3,10 @@ package com.autovideo.app
 import java.net.URI
 
 /**
- * Qué peticiones de red se bloquean. Para añadir reglas, edita estas dos listas.
+ * Which network requests are blocked. To add rules, edit these two lists.
  */
 object AdBlockRules {
-    /** Dominios bloqueados por completo (incluye sus subdominios). */
+    /** Fully blocked domains (including their subdomains). */
     private val BLOCKED_DOMAINS = listOf(
         "doubleclick.net",
         "googlesyndication.com",
@@ -15,7 +15,7 @@ object AdBlockRules {
         "imasdk.googleapis.com",
     )
 
-    /** Rutas bloqueadas dentro de los dominios de YouTube. */
+    /** Blocked paths within YouTube domains. */
     private val BLOCKED_YOUTUBE_PATHS = listOf(
         "/pagead/",
         "/api/stats/ads",

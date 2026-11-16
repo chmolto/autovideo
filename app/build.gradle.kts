@@ -5,7 +5,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
-// Clave de subida a Google Play: vive fuera del repositorio (~/.autovideo/keystore.properties).
+// Google Play upload key: kept outside the repository (~/.autovideo/keystore.properties).
 val keystoreProps = Properties().apply {
     val f = File(System.getProperty("user.home"), ".autovideo/keystore.properties")
     if (f.exists()) f.inputStream().use { load(it) }
@@ -36,7 +36,7 @@ android {
 
     buildTypes {
         debug {
-            // Convive con la versión instalada vía UnknownAuto (firmada con otra clave).
+            // Coexists with the build installed via UnknownAuto (signed with a different key).
             applicationIdSuffix = ".debug"
         }
         release {

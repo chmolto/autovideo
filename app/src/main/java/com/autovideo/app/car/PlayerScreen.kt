@@ -11,7 +11,7 @@ import androidx.core.graphics.drawable.IconCompat
 import com.autovideo.app.Playback
 import com.autovideo.app.R
 
-/** Pantalla del coche: el vídeo de fondo (superficie) y 4 botones. */
+/** Car screen: the video in the background (surface) and 4 buttons. */
 class PlayerScreen(carContext: CarContext) : Screen(carContext) {
 
     override fun onGetTemplate(): Template {

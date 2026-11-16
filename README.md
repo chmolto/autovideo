@@ -1,61 +1,65 @@
-# AutoVídeo
+<p align="center"><img src="docs/icon.png" width="128" alt="AutoVideo icon"></p>
 
-App Android personal para ver vídeos de YouTube en la pantalla de Android Auto **con el coche aparcado**.
+# AutoVideo
 
-- Eliges el vídeo en el móvil (Brave → Compartir → Más → **AutoVídeo**) y se reproduce en la pantalla del coche.
-- Solo el reproductor, a pantalla completa, sin anuncios (bloqueo propio, sin librerías de terceros).
-- Botones en el coche: pausa, −10 s, +10 s, recargar.
-- Barra de progreso: un toque la muestra; tocar en la barra salta a ese momento; tocar el vídeo pausa/reanuda.
-- El audio sigue si cambias a otra app en el coche (Maps, etc.).
+AutoVideo is a personal Android app for watching YouTube videos on the Android Auto screen **while the car is parked**.
 
-Diseño: [docs/2026-11-15-video-android-auto-design.md](docs/2026-11-15-video-android-auto-design.md) ·
+> **Disclaimer:** This is a personal project, not affiliated with or endorsed by Google or YouTube.
+> Use it only while parked. The built-in ad blocking is meant for personal use and may break
+> whenever YouTube changes its site.
+
+- Pick the video on your phone (Brave → Share → More → **AutoVideo**) and it plays on the car screen.
+- Player only, full screen, no ads (its own blocking, no third-party libraries).
+- Buttons on the car screen: pause, −10 s, +10 s, reload.
+- Progress bar: one tap shows it; tapping on the bar jumps to that point; tapping the video pauses/resumes.
+- Audio keeps playing if you switch to another app in the car (Maps, etc.).
+
+Design: [docs/2026-11-15-video-android-auto-design.md](docs/2026-11-15-video-android-auto-design.md) ·
 Plan: [docs/superpowers/plans/2026-11-15-autovideo.md](docs/superpowers/plans/2026-11-15-autovideo.md)
 
-> Úsala solo con el coche parado.
+## Build
 
-## Compilar
-
-Requisitos: JDK 17 y Android SDK (platform 36, build-tools). Sin Android Studio.
+Requirements: JDK 17 and the Android SDK (platform 36, build-tools). No Android Studio needed.
 
 ```bash
 ./gradlew testDebugUnitTest      # tests
-./gradlew assembleRelease        # APK firmado: app/build/outputs/apk/release/app-release.apk
+./gradlew assembleRelease        # signed APK: app/build/outputs/apk/release/app-release.apk
 ```
 
-La firma de release usa la clave de `~/.autovideo/keystore.properties` (fuera del repo).
-Si no existe, el release sale sin firmar.
+Release signing uses the key from `~/.autovideo/keystore.properties` (outside the repo).
+If that file doesn't exist, the release build is unsigned.
 
-## Instalar para que Android Auto la muestre en el coche
+## Installing so Android Auto shows it in the car
 
-Android Auto solo muestra apps hechas con la Car App Library si Android cree que vienen de
-Google Play (instalador **e** iniciador de la instalación). `adb install` no sirve: deja al
-PC (`com.android.shell`) como iniciador y la app no aparece en el coche, aunque sí en el
-simulador (DHU). «Fuentes desconocidas» no basta para este tipo de apps.
+Android Auto only shows apps built with the Car App Library if Android believes they came from
+Google Play (both the installer **and** the installation initiator). `adb install` doesn't work: it
+records the PC (`com.android.shell`) as the initiator, so the app doesn't show up in the car, even
+though it does show up in the simulator (DHU). "Unknown sources" alone isn't enough for this kind of app.
 
-Se instala con **UnknownAuto** (código abierto, revisado y compilado desde su fuente) + **Shizuku** (Play Store):
+Install it with **UnknownAuto** (open source, reviewed and built from source) + **Shizuku** (Play Store):
 
-1. Copiar el APK al móvil: `adb push app/build/outputs/apk/release/app-release.apk /sdcard/Download/AutoVideo.apk`
-2. Arrancar Shizuku por ADB:
+1. Copy the APK to the phone: `adb push app/build/outputs/apk/release/app-release.apk /sdcard/Download/AutoVideo.apk`
+2. Start Shizuku over ADB:
    ```bash
    adb shell "$(adb shell pm path moe.shizuku.privileged.api | sed 's/package://;s/base.apk//')lib/arm64/libshizuku.so"
    ```
-3. En el móvil: UnknownAuto → `Descargas/AutoVideo.apk` → Instalar.
-4. Comprobar: `adb shell dumpsys package io.github.chmolto.autovideo | grep -E "installer|initiating"` debe mostrar
-   `installerPackageName=com.android.vending` e `initiatingPackageName=com.google.android.packageinstaller`.
-5. En Android Auto → Ajustes → *Personalizar menú de apps* debe aparecer AutoVídeo.
+3. On the phone: UnknownAuto → `Download/AutoVideo.apk` → Install.
+4. Check: `adb shell dumpsys package io.github.chmolto.autovideo | grep -E "installer|initiating"` should show
+   `installerPackageName=com.android.vending` and `initiatingPackageName=com.google.android.packageinstaller`.
+5. In Android Auto → Settings → *Customize launcher*, AutoVideo should appear.
 
-Repetir en cada versión nueva (subir `versionCode`).
+Repeat for every new version (bump `versionCode`).
 
-En Android Auto → Ajustes para desarrolladores también conviene tener **Fuentes desconocidas** activado.
+It's also a good idea to enable **Unknown sources** in Android Auto → Developer settings.
 
-## Probar en el PC con el simulador (DHU)
+## Testing on the PC with the simulator (DHU)
 
-1. En Android Auto (móvil): ⋮ → *Iniciar servidor de la unidad principal*.
+1. In Android Auto (phone): ⋮ → *Start head unit server*.
 2. `adb forward tcp:5277 tcp:5277`
 3. `%ANDROID_HOME%\extras\google\auto\desktop-head-unit.exe`
 
-La versión **debug** se instala aparte (`io.github.chmolto.autovideo.debug`, «AutoVídeo (pruebas)»).
-Compartir con `--ez autovideo.test_muted true` la reproduce **siempre silenciada** (vía `mute()` de YouTube):
+The **debug** build installs side by side (`io.github.chmolto.autovideo.debug`, "AutoVideo (debug)").
+Sharing with `--ez autovideo.test_muted true` plays the video **always muted** (via YouTube's `mute()`):
 
 ```bash
 adb shell am start -a android.intent.action.SEND -t text/plain \
@@ -63,27 +67,27 @@ adb shell am start -a android.intent.action.SEND -t text/plain \
   -n io.github.chmolto.autovideo.debug/com.autovideo.app.ShareActivity
 ```
 
-Registro: `adb logcat | grep -E "AutoVideo|\[AutoVideo\]"` (bloqueos de anuncios en `AutoVideo/AdBlock`).
+Logs: `adb logcat | grep -E "AutoVideo|\[AutoVideo\]"` (blocked ad requests under `AutoVideo/AdBlock`).
 
-## Bloqueo de anuncios
+## Ad blocking
 
-- Peticiones bloqueadas: `app/src/main/java/com/autovideo/app/AdBlockRules.kt`
-- Ocultar elementos / saltar anuncios: `app/src/main/assets/inject.css` y `inject.js`
+- Blocked requests: `app/src/main/java/com/autovideo/app/AdBlockRules.kt`
+- Hiding elements / skipping ads: `app/src/main/assets/inject.css` and `inject.js`
 
-Si YouTube cambia su web y vuelven a salir anuncios, es ahí donde hay que tocar.
+If YouTube changes its site and ads come back, that's where to make changes.
 
-## Lecciones aprendidas
+## Lessons learned
 
-- **Controlar el vídeo SIEMPRE con la API de YouTube** (`#movie_player`: `playVideo`, `pauseVideo`,
-  `seekTo`, `mute`). Si se toca el `<video>` directamente, el estado interno de YouTube no coincide
-  y lo vuelve a pausar.
-- **YouTube cree estar en "imagen en imagen"** si la ventana (`outerWidth×outerHeight`) es mucho
-  menor que la mayor pantalla/ventana que ha visto, y entonces pausa en cada actualización de
-  progreso. Como el reproductor pasa por pantallas de distinto tamaño, el script fija `screen.*` y
-  `outer*` a un valor constante.
-- No cambiar el volumen por código con el vídeo en marcha: YouTube reacciona pausando.
+- **ALWAYS control the video through the YouTube player API** (`#movie_player`: `playVideo`, `pauseVideo`,
+  `seekTo`, `mute`). If you touch the `<video>` element directly, YouTube's internal state gets out of
+  sync and it pauses the video again.
+- **YouTube thinks it's in picture-in-picture** if the window (`outerWidth×outerHeight`) is much
+  smaller than the largest screen/window it has seen, and then pauses on every progress update.
+  Since the player moves between screens of different sizes, the script pins `screen.*` and
+  `outer*` to a constant value.
+- Don't change the volume from code while the video is playing: YouTube reacts by pausing.
 
-- YouTube móvil arranca los vídeos **silenciados**: el script quita el silencio.
-- El WebView ya gestiona el **foco de audio** (Chromium); pedirlo también desde la app hacía que se pausara solo.
-- Al mover el WebView entre pantallas Chromium lo pausa un instante: se reanuda tras moverlo.
-- Sin pantalla del coche, el WebView se aparca en una pantalla virtual invisible para que Chromium no lo pause.
+- Mobile YouTube starts videos **muted**: the script unmutes them.
+- The WebView already handles **audio focus** (Chromium); also requesting it from the app made playback pause on its own.
+- When the WebView moves between displays, Chromium pauses it briefly: playback is resumed after the move.
+- With no car screen, the WebView is parked on an invisible virtual display so Chromium doesn't pause it.

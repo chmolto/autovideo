@@ -21,12 +21,12 @@ import com.autovideo.app.PlayerController
 import com.autovideo.app.R
 
 /**
- * Convierte la superficie que da Android Auto en una "pantalla" Android normal
- * (VirtualDisplay + Presentation) donde se muestra el WebView del reproductor.
- * El vídeo se ajusta a la zona visible (p. ej. el hueco izquierdo en la vista dividida).
+ * Turns the surface provided by Android Auto into a regular Android "display"
+ * (VirtualDisplay + Presentation) that shows the player's WebView.
+ * The video fits the visible area (e.g. the left slot in split view).
  *
- * Toques: con la barra de progreso oculta, un toque solo la muestra. Con la barra visible,
- * tocar la franja de la barra salta a ese momento y tocar el vídeo pausa/reanuda.
+ * Taps: while the progress bar is hidden, a tap only shows it. While the bar is visible,
+ * tapping the bar's band seeks to that point and tapping the video pauses/resumes.
  */
 class SurfaceBridge(private val carContext: CarContext) : SurfaceCallback {
 
@@ -39,7 +39,7 @@ class SurfaceBridge(private val carContext: CarContext) : SurfaceCallback {
     private val main = Handler(Looper.getMainLooper())
     private var hideAt = 0L
 
-    /** Refresca la barra mientras se ve y la oculta pasado un rato (no si está en pausa). */
+    /** Refreshes the bar while it is shown and hides it after a while (unless paused). */
     private val overlayTicker = object : Runnable {
         override fun run() {
             val bar = overlay ?: return
@@ -59,7 +59,7 @@ class SurfaceBridge(private val carContext: CarContext) : SurfaceCallback {
     override fun onSurfaceAvailable(surfaceContainer: SurfaceContainer) {
         val surface = surfaceContainer.surface ?: return
         release()
-        Log.d(PlayerController.TAG, "Superficie ${surfaceContainer.width}x${surfaceContainer.height} @${surfaceContainer.dpi}dpi")
+        Log.d(PlayerController.TAG, "Surface ${surfaceContainer.width}x${surfaceContainer.height} @${surfaceContainer.dpi}dpi")
         val dm = carContext.getSystemService(DisplayManager::class.java)
         val vd = dm.createVirtualDisplay(
             "AutoVideo",
@@ -86,7 +86,7 @@ class SurfaceBridge(private val carContext: CarContext) : SurfaceCallback {
     }
 
     override fun onVisibleAreaChanged(visibleArea: Rect) {
-        Log.d(PlayerController.TAG, "Zona visible $visibleArea")
+        Log.d(PlayerController.TAG, "Visible area $visibleArea")
         this.visibleArea = Rect(visibleArea)
         applyVisibleArea()
     }
@@ -113,7 +113,7 @@ class SurfaceBridge(private val carContext: CarContext) : SurfaceCallback {
         }
     }
 
-    /** Muestra el vídeo si hay uno, o el aviso de "comparte un vídeo". */
+    /** Shows the video if there is one, or the "share a video" message. */
     fun refresh() {
         val box = content ?: return
         val p = presentation ?: return
@@ -121,7 +121,7 @@ class SurfaceBridge(private val carContext: CarContext) : SurfaceCallback {
             message?.let { box.removeView(it) }
             message = null
             if (player.webView.parent !== box) player.attach(p.context, box)
-            if (!player.playing) showOverlay() // en pausa, la barra se queda a la vista
+            if (!player.playing) showOverlay() // while paused, the bar stays visible
         } else if (message == null) {
             message = TextView(p.context).apply {
                 setText(R.string.car_empty)
@@ -139,7 +139,7 @@ class SurfaceBridge(private val carContext: CarContext) : SurfaceCallback {
         val p = Playback.currentOrNull ?: return
         val bar = overlay
         if (bar == null || bar.visibility != View.VISIBLE) {
-            showOverlay() // primer toque: solo enseñar la barra
+            showOverlay() // first tap: just show the bar
             return
         }
         val area = visibleArea
@@ -152,7 +152,7 @@ class SurfaceBridge(private val carContext: CarContext) : SurfaceCallback {
         showOverlay()
     }
 
-    /** Libera la pantalla virtual. El reproductor sigue vivo (audio de fondo). */
+    /** Releases the virtual display. The player stays alive (background audio). */
     fun release() {
         main.removeCallbacks(overlayTicker)
         overlay = null

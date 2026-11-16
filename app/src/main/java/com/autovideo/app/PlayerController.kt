@@ -22,9 +22,9 @@ import org.json.JSONObject
 import java.io.ByteArrayInputStream
 
 /**
- * Dueño del WebView con YouTube. Vive mientras vive el proceso, no la pantalla:
- * se engancha y desengancha de la pantalla del coche (o del móvil) sin parar el vídeo.
- * Todas las llamadas, en el hilo principal.
+ * Owns the YouTube WebView. It lives as long as the process, not the screen:
+ * it attaches to and detaches from the car (or phone) screen without stopping the video.
+ * All calls must be made on the main thread.
  */
 @SuppressLint("SetJavaScriptEnabled")
 class PlayerController(private val app: Context) {
@@ -40,7 +40,7 @@ class PlayerController(private val app: Context) {
         private set
     @Volatile private var autoplay = true
 
-    /** Solo para pruebas (versión debug): el vídeo suena siempre en silencio. */
+    /** Testing only (debug build): the video always plays muted. */
     @Volatile var testMuted = false
     var playing = false
         private set
@@ -48,7 +48,7 @@ class PlayerController(private val app: Context) {
         private set
     val hasVideo: Boolean get() = videoId != null
 
-    /** Posición y duración del vídeo en segundos (0 si no se sabe o hay un anuncio). */
+    /** Video position and duration in seconds (0 if unknown or an ad is showing). */
     var positionSeconds = 0.0
         private set
     var durationSeconds = 0.0
@@ -56,7 +56,7 @@ class PlayerController(private val app: Context) {
     var adShowing = false
         private set
 
-    /** Se llama al cambiar play/pausa, el título o el vídeo. */
+    /** Called when play/pause, the title or the video changes. */
     var onStateChanged: ((playing: Boolean) -> Unit)? = null
 
     private val positionSaver = object : Runnable {
@@ -74,7 +74,7 @@ class PlayerController(private val app: Context) {
     }
 
     init {
-        // Rechazar cookies no esenciales: evita la pantalla de consentimiento de YouTube.
+        // Reject non-essential cookies: avoids YouTube's consent screen.
         CookieManager.getInstance().apply {
             setAcceptCookie(true)
             setCookie("https://www.youtube.com", "SOCS=CAI; Domain=.youtube.com; Path=/; Secure")
@@ -101,10 +101,10 @@ class PlayerController(private val app: Context) {
             }
 
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                // Solo se navega dentro de YouTube/Google (consentimiento); el resto se ignora.
+                // Only navigate within YouTube/Google (consent); everything else is ignored.
                 val host = request.url.host ?: return true
                 val allowed = ALLOWED_HOST_SUFFIXES.any { host == it || host.endsWith(".$it") }
-                if (!allowed) Log.d(TAG, "Navegación ignorada: ${request.url}")
+                if (!allowed) Log.d(TAG, "Navigation ignored: ${request.url}")
                 return !allowed
             }
 
@@ -129,13 +129,13 @@ class PlayerController(private val app: Context) {
         onStateChanged?.invoke(playing)
     }
 
-    /** Pausa o reanuda según el estado actual (mismo camino que los botones multimedia). */
+    /** Pauses or resumes based on the current state (same path as the media buttons). */
     fun togglePlay() = if (playing) pause() else play()
     fun play() = js("play()")
     fun pause() = js("pause()")
     fun seekBy(seconds: Int) = js("seek($seconds)")
 
-    /** Salta al segundo [seconds] del vídeo. */
+    /** Seeks to second [seconds] of the video. */
     fun seekTo(seconds: Double) {
         positionSeconds = seconds
         js("seekTo(${"%.2f".format(java.util.Locale.US, seconds)})")
@@ -150,23 +150,23 @@ class PlayerController(private val app: Context) {
                 positionSeconds = o.optDouble("t", 0.0)
                 durationSeconds = o.optDouble("d", 0.0)
                 adShowing = o.optBoolean("ad", false)
-                // La duración llega tarde: avisar para que la tarjeta multimedia la muestre.
+                // The duration arrives late: notify so the media card shows it.
                 if (durationSeconds != oldDuration) onStateChanged?.invoke(playing)
             } catch (e: Exception) {
-                Log.w(TAG, "Estado ilegible: $result")
+                Log.w(TAG, "Unreadable status: $result")
             }
         }
     }
 
-    /** Vuelve a cargar el vídeo actual en el segundo en que iba. */
+    /** Reloads the current video at its current position. */
     fun reload() {
         val id = videoId ?: return
         currentTime { t -> load(id, maxOf(t, 0), autoplay = playing) }
     }
 
-    /** Muestra el reproductor dentro de [container]; [host] es el contexto de esa pantalla. */
+    /** Shows the player inside [container]; [host] is that screen's context. */
     fun attach(host: Context, container: ViewGroup) {
-        // Al mover el WebView de pantalla, Chromium pausa el vídeo un instante: si sonaba, reanudarlo.
+        // Moving the WebView to another screen makes Chromium pause the video briefly: resume it if it was playing.
         val wasPlaying = playing
         (webView.parent as? ViewGroup)?.removeView(webView)
         contextWrapper.baseContext = host
@@ -180,8 +180,8 @@ class PlayerController(private val app: Context) {
     }
 
     /**
-     * Quita el reproductor de la pantalla; el vídeo sigue sonando. El WebView se aparca en
-     * una pantalla invisible para que Chromium no lo pause ni frene sus temporizadores.
+     * Removes the player from the screen; the video keeps playing. The WebView is parked on
+     * an invisible display so Chromium does not pause it or throttle its timers.
      */
     fun detach() {
         savePosition()
@@ -209,7 +209,7 @@ class PlayerController(private val app: Context) {
     }
 
     private fun js(call: String) {
-        if (BuildConfig.DEBUG) Log.d(TAG, "orden: $call")
+        if (BuildConfig.DEBUG) Log.d(TAG, "command: $call")
         webView.evaluateJavascript("window.AutoVideo && AutoVideo.$call", null)
     }
 
@@ -219,7 +219,7 @@ class PlayerController(private val app: Context) {
         return js.replace("__AUTOVIDEO_CSS__", JSONObject.quote(css))
     }
 
-    /** Lo que la página puede decirle a la app. Llega en un hilo de fondo. */
+    /** What the page can tell the app. Called on a background thread. */
     private inner class Bridge {
         @JavascriptInterface fun videoId(): String = this@PlayerController.videoId ?: ""
         @JavascriptInterface fun autoplay(): Boolean = this@PlayerController.autoplay

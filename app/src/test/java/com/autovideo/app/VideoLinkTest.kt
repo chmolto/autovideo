@@ -12,7 +12,7 @@ class VideoLinkTest {
     @Test fun live() = assertEquals("abcdefghijk", VideoLink.extractVideoId("https://www.youtube.com/live/abcdefghijk"))
     @Test fun embed() = assertEquals("abcdefghijk", VideoLink.extractVideoId("https://www.youtube.com/embed/abcdefghijk"))
     @Test fun music() = assertEquals("dQw4w9WgXcQ", VideoLink.extractVideoId("https://music.youtube.com/watch?v=dQw4w9WgXcQ"))
-    @Test fun withText() = assertEquals("dQw4w9WgXcQ", VideoLink.extractVideoId("Mira esto\nhttps://youtu.be/dQw4w9WgXcQ"))
+    @Test fun withText() = assertEquals("dQw4w9WgXcQ", VideoLink.extractVideoId("Check this out\nhttps://youtu.be/dQw4w9WgXcQ"))
     @Test fun noScheme() = assertEquals("dQw4w9WgXcQ", VideoLink.extractVideoId("youtu.be/dQw4w9WgXcQ"))
     @Test fun notYoutube() = assertNull(VideoLink.extractVideoId("https://vimeo.com/123456"))
     @Test fun lookalike() = assertNull(VideoLink.extractVideoId("https://notyoutube.com/watch?v=dQw4w9WgXcQ"))

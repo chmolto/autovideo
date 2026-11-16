@@ -1,18 +1,18 @@
 <resources>
-    <string name="app_name">AutoVídeo</string>
-    <string name="instructions">Cómo se usa:\n\n1. En Brave, abre un vídeo de YouTube → Compartir → AutoVídeo.\n2. En la pantalla del coche, abre AutoVídeo.\n\nSi compartes con la app ya abierta en el coche, el vídeo empieza al momento.\n\nRequisito: en Android Auto → Ajustes para desarrolladores, activa «Fuentes desconocidas».\nÚsala solo con el coche parado.</string>
-    <string name="try_here">Probar aquí</string>
-    <string name="share_first">Primero comparte un vídeo desde Brave.</string>
-    <string name="share_not_youtube">Ese enlace no es de YouTube</string>
-    <string name="share_playing">Abierto en AutoVídeo</string>
-    <string name="share_saved">Listo: abre AutoVídeo en la pantalla del coche</string>
-    <string name="car_empty">Comparte un vídeo desde el móvil</string>
-    <string name="channel_name">Reproducción</string>
-    <string name="notification_text">Reproduciendo en AutoVídeo</string>
-    <string name="action_play">Reanudar</string>
-    <string name="action_pause">Pausa</string>
-    <string name="action_stop">Detener</string>
+    <string name="app_name">AutoVideo</string>
+    <string name="instructions">How to use it:\n\n1. In Brave, open a YouTube video → Share → AutoVideo.\n2. On the car screen, open AutoVideo.\n\nIf you share while the app is already open in the car, the video starts right away.\n\nRequirement: in Android Auto → Developer settings, turn on “Unknown sources”.\nOnly use it while parked.</string>
+    <string name="try_here">Try here</string>
+    <string name="share_first">Share a video from Brave first.</string>
+    <string name="share_not_youtube">That link isn\'t a YouTube link</string>
+    <string name="share_playing">Opened in AutoVideo</string>
+    <string name="share_saved">Ready: open AutoVideo on the car screen</string>
+    <string name="car_empty">Share a video from your phone</string>
+    <string name="channel_name">Playback</string>
+    <string name="notification_text">Playing in AutoVideo</string>
+    <string name="action_play">Resume</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_stop">Stop</string>
     <string name="action_rewind">−10 s</string>
     <string name="action_forward">+10 s</string>
-    <string name="action_reload">Recargar</string>
+    <string name="action_reload">Reload</string>
 </resources>

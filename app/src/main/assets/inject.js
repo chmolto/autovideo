@@ -1,15 +1,15 @@
-// AutoVídeo: se inyecta en la web de YouTube antes de que cargue la página.
-// - Deja solo el reproductor a pantalla completa (CSS).
-// - Salta los anuncios dentro del vídeo.
-// - Evita que YouTube pause el vídeo cuando la página "no se ve" (audio de fondo).
-// - Expone window.AutoVideo para que la app controle el vídeo.
+// AutoVideo: injected into the YouTube site before the page loads.
+// - Leaves only the player, full screen (CSS).
+// - Skips in-video ads.
+// - Stops YouTube from pausing the video when the page is "not visible" (background audio).
+// - Exposes window.AutoVideo so the app can control the video.
 (function () {
   if (window.__autoVideoInstalled) return;
   window.__autoVideoInstalled = true;
 
   var bridge = window.AutoVideoBridge;
 
-  // --- CSS (lo rellena la app con inject.css) ---
+  // --- CSS (filled in by the app from inject.css) ---
   var css = __AUTOVIDEO_CSS__;
   function addStyle() {
     if (document.getElementById('autovideo-style')) return;
@@ -21,7 +21,7 @@
   addStyle();
   document.addEventListener('DOMContentLoaded', addStyle);
 
-  // --- La página siempre está "visible" ---
+  // --- The page is always "visible" ---
   try {
     Object.defineProperty(document, 'hidden', { get: function () { return false; }, configurable: true });
     Object.defineProperty(document, 'webkitHidden', { get: function () { return false; }, configurable: true });
@@ -34,12 +34,12 @@
     document.addEventListener(t, function (e) { e.stopImmediatePropagation(); }, true);
   });
 
-  // --- Que YouTube nunca crea estar en "imagen en imagen" ---
-  // YouTube compara el área de la ventana (outerWidth×outerHeight) con la mayor área de
-  // pantalla/ventana que ha visto; si la ventana es mucho menor, cree que está en PiP y pausa
-  // el vídeo en cada actualización de progreso. Como el reproductor pasa por pantallas de
-  // distinto tamaño (móvil, coche, pantalla invisible), se le da siempre el mismo tamaño
-  // fijo. La maquetación de la página usa innerWidth/CSS, que no se tocan.
+  // --- YouTube must never think it is in picture-in-picture ---
+  // YouTube compares the window area (outerWidth×outerHeight) with the largest screen/window
+  // area it has seen; if the window is much smaller, it assumes PiP and pauses the video
+  // on every progress update. Since the player moves between displays of different sizes
+  // (phone, car, invisible display), it is always given the same fixed size.
+  // Page layout uses innerWidth/CSS, which are left untouched.
   try {
     var FIXED = 4096;
     var fixed = { get: function () { return FIXED; }, configurable: true };
@@ -50,7 +50,7 @@
     Object.defineProperty(window, 'outerHeight', fixed);
   } catch (e) {}
 
-  // Diagnóstico (debug): quién llama a pause() desde JavaScript.
+  // Diagnostics (debug): who calls pause() from JavaScript.
   if (bridge && bridge.isDebug()) {
     Error.stackTraceLimit = 40;
     var origPause = HTMLMediaElement.prototype.pause;
@@ -58,12 +58,12 @@
       var frames = (new Error().stack || '').split(/\n/).slice(2, 40).map(function (l) {
         return l.trim().replace(/^at /, '').replace(/https:[^ )]*base\.js/, 'yt');
       });
-      console.log('[AutoVideo] pause() llamado desde JS: ' + frames.join(' | '));
+      console.log('[AutoVideo] pause() called from JS: ' + frames.join(' | '));
       return origPause.apply(this, arguments);
     };
   }
 
-  // --- Control del vídeo ---
+  // --- Video control ---
   function video() {
     return document.querySelector('video.html5-main-video') || document.querySelector('video');
   }
@@ -75,9 +75,9 @@
     return !!p && (p.classList.contains('ad-showing') || p.classList.contains('ad-interrupting'));
   }
 
-  // El reproductor de YouTube (#movie_player) con su API interna. Hay que controlar el vídeo
-  // A TRAVÉS de ella: si se toca el <video> directamente, YouTube cree que sigue en pausa
-  // y lo vuelve a pausar (pauseVideo) cada vez que arranca.
+  // YouTube's player (#movie_player) and its internal API. The video must be controlled
+  // THROUGH it: if the <video> is touched directly, YouTube thinks it is still paused
+  // and pauses it again (pauseVideo) every time it starts.
   function yt() {
     var mp = document.getElementById('movie_player');
     return mp && typeof mp.playVideo === 'function' ? mp : null;
@@ -109,7 +109,7 @@
     else { var v = video(); if (v) v.currentTime = t; }
   }
 
-  // Si el usuario pausa, no volver a arrancar el vídeo por nuestra cuenta.
+  // If the user pauses, don't restart the video on our own.
   var userPaused = false;
   var autoplayUntil = 0;
 
@@ -120,13 +120,13 @@
     },
     play: function () { userPaused = false; doPlay(); },
     pause: function () { userPaused = true; doPause(); },
-    // Reanudar tras mover el reproductor de pantalla, salvo que el usuario lo haya pausado.
+    // Resume after the player moves to another display, unless the user paused it.
     resumeAfterMove: function () { var v = video(); if (v && v.paused && !v.ended && !userPaused) doPlay(); },
     seek: function (s) { var v = video(); if (v) seekTo(v.currentTime + s); },
     seekTo: function (t) { seekTo(t); },
     time: function () { var v = video(); return v && !adShowing() ? Math.floor(v.currentTime) : -1; },
     paused: function () { var v = video(); return !v || v.paused; },
-    // Para la barra de progreso: segundos actuales, duración, en pausa, anuncio.
+    // For the progress bar: current seconds, duration, paused, ad.
     status: function () {
       var v = video();
       if (!v) return null;
@@ -135,7 +135,7 @@
     }
   };
 
-  // Avisar a la app de play/pausa (los eventos de <video> no burbujean: se escuchan en captura).
+  // Notify the app of play/pause (<video> events don't bubble: listen in the capture phase).
   function report() {
     if (!bridge) return;
     var v = video();
@@ -145,17 +145,17 @@
   document.addEventListener('playing', report, true);
   document.addEventListener('pause', report, true);
   document.addEventListener('pause', function () {
-    if (bridge && bridge.isDebug()) console.log('[AutoVideo] pausa; userPaused=' + userPaused + ' ' + new Error().stack);
+    if (bridge && bridge.isDebug()) console.log('[AutoVideo] pause; userPaused=' + userPaused + ' ' + new Error().stack);
   }, true);
   document.addEventListener('ended', report, true);
-  // Modo de prueba: silenciar en el mismo instante en que el vídeo intenta sonar.
+  // Test mode: mute the instant the video tries to play sound.
   ['play', 'playing', 'volumechange', 'loadedmetadata'].forEach(function (t) {
     document.addEventListener(t, function (e) {
       if (bridge && bridge.testMuted() && e.target && e.target.muted === false) e.target.muted = true;
     }, true);
   });
 
-  // --- Bucle: anuncios, arranque automático, título, no pasar al siguiente vídeo ---
+  // --- Loop: ads, autoplay, title, don't advance to the next video ---
   var startedFor = null;
   var debugTick = 0;
   var rafCount = 0;
@@ -178,15 +178,15 @@
       ).forEach(function (b) { b.click(); });
       return;
     }
-    // YouTube móvil arranca los vídeos silenciados ("toca para activar el sonido"):
-    // quitar el silencio, que además evita que Chromium lo pause al dejar de verse.
+    // Mobile YouTube starts videos muted ("tap to unmute"):
+    // unmute them, which also stops Chromium from pausing them when hidden.
     var mp = document.getElementById('movie_player');
     var silent = bridge && bridge.testMuted();
-    // OJO: no cambiar el volumen con el vídeo en marcha más de lo imprescindible: YouTube
-    // reacciona a los cambios de volumen hechos por código pausando el vídeo.
+    // CAREFUL: change the volume of a playing video only when strictly necessary: YouTube
+    // reacts to programmatic volume changes by pausing the video.
     if (silent) {
-      // Modo de prueba: silenciado SIEMPRE, y a través de YouTube (mute) para que su estado
-      // coincida con el del vídeo; si no, YouTube lo pausa al reanudar.
+      // Test mode: ALWAYS muted, and through YouTube (mute) so that its state matches
+      // the video's; otherwise YouTube pauses it on resume.
       if (mp && mp.isMuted && !mp.isMuted()) mp.mute();
       if (!v.muted) v.muted = true;
     } else if (v.muted || v.__autoVideoMuted) {
@@ -199,13 +199,13 @@
     var wanted = bridge.videoId();
     var current = new URLSearchParams(location.search).get('v');
 
-    // YouTube ha saltado a otro vídeo por su cuenta (reproducción automática): parar.
+    // YouTube jumped to another video on its own (autoplay): stop.
     if (wanted && current && current !== wanted) {
       if (!v.paused) doPause();
       return;
     }
-    // Primer arranque del vídeo pedido. YouTube a veces lo pausa al inicializarse:
-    // durante 15 s se insiste mientras el usuario no lo haya pausado.
+    // First start of the requested video. YouTube sometimes pauses it while initializing:
+    // keep retrying for 15 s unless the user has paused it.
     if (wanted && startedFor !== wanted && v.readyState >= 1) {
       startedFor = wanted;
       userPaused = !bridge.autoplay();

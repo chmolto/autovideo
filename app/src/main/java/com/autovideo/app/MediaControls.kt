@@ -11,11 +11,11 @@ import androidx.core.app.NotificationCompat
 import androidx.media.app.NotificationCompat.MediaStyle
 
 /**
- * Controles de reproducción del sistema (coche y móvil) y notificación.
+ * System playback controls (car and phone) and the notification.
  *
- * El foco de audio NO se gestiona aquí: lo hace el propio WebView (AudioFocusDelegate de
- * Chromium), que pausa el vídeo si otra app toma el sonido y baja el volumen en indicaciones
- * breves. Pedirlo también desde aquí hacía que nos lo quitáramos a nosotros mismos.
+ * Audio focus is NOT handled here: the WebView itself does it (Chromium's AudioFocusDelegate),
+ * which pauses the video if another app takes the audio and ducks the volume for short prompts.
+ * Requesting it here as well made us take it away from ourselves.
  */
 class MediaControls(private val service: Service) {
 

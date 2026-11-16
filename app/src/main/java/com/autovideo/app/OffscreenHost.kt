@@ -12,9 +12,9 @@ import android.os.Looper
 import android.widget.FrameLayout
 
 /**
- * Pantalla virtual invisible donde "aparcar" el WebView cuando no se ve en ningún sitio.
- * Así Chromium lo considera visible: no pausa el vídeo ni frena los temporizadores
- * (de los que depende saltar anuncios) mientras el coche muestra otra app.
+ * Invisible virtual display where the WebView is "parked" when it is not shown anywhere.
+ * This way Chromium treats it as visible: it does not pause the video or throttle the timers
+ * (which ad skipping relies on) while the car shows another app.
  */
 class OffscreenHost(private val app: Context) {
 
@@ -23,12 +23,12 @@ class OffscreenHost(private val app: Context) {
     private var presentation: Presentation? = null
     private var root: FrameLayout? = null
 
-    /** Contexto y contenedor donde enganchar el WebView. Se crea la primera vez. */
+    /** Context and container to attach the WebView to. Created on first use. */
     fun container(): Pair<Context, FrameLayout> {
         root?.let { return presentation!!.context to it }
         val main = Handler(Looper.getMainLooper())
         val r = ImageReader.newInstance(WIDTH, HEIGHT, PixelFormat.RGBA_8888, 2).apply {
-            // Descartar los fotogramas: nadie los mira, pero hay que consumirlos.
+            // Discard the frames: nobody looks at them, but they must be consumed.
             setOnImageAvailableListener({ it.acquireLatestImage()?.close() }, main)
         }
         val vd = app.getSystemService(DisplayManager::class.java).createVirtualDisplay(

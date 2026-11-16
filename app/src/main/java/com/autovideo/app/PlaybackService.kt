@@ -12,8 +12,8 @@ import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 
 /**
- * Servicio en primer plano mientras hay reproducción: mantiene vivo el proceso para que
- * el audio siga aunque la pantalla del coche muestre otra app, y lleva los controles del sistema.
+ * Foreground service while playing: keeps the process alive so the audio continues
+ * even when the car screen shows another app, and hosts the system controls.
  */
 class PlaybackService : Service() {
 
@@ -73,8 +73,8 @@ class PlaybackService : Service() {
             try {
                 ContextCompat.startForegroundService(ctx, Intent(ctx, PlaybackService::class.java))
             } catch (e: Exception) {
-                // Android puede negarlo si la app está en segundo plano; se reintenta en el siguiente "play".
-                Log.w(PlayerController.TAG, "No se pudo iniciar el servicio en primer plano", e)
+                // Android may refuse this if the app is in the background; it is retried on the next "play".
+                Log.w(PlayerController.TAG, "Could not start the foreground service", e)
             }
         }
 

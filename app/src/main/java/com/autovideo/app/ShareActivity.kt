@@ -5,7 +5,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 
-/** Recibe "Compartir → AutoVídeo" (o un enlace de YouTube) y se cierra al momento. */
+/** Handles "Share → AutoVideo" (or a YouTube link) and closes immediately. */
 class ShareActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,7 +28,7 @@ class ShareActivity : Activity() {
     }
 
     companion object {
-        /** Solo en debug: `adb shell am start ... --ez autovideo.test_muted true` para probar sin sonido. */
+        /** Debug only: `adb shell am start ... --ez autovideo.test_muted true` to test without sound. */
         const val EXTRA_TEST_MUTED = "autovideo.test_muted"
     }
 }

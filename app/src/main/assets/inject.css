@@ -1,12 +1,12 @@
-/* AutoVídeo: solo el reproductor, a pantalla completa, sin anuncios.
-   Para ocultar algo más, añade su selector aquí. */
+/* AutoVideo: just the player, full screen, no ads.
+   To hide anything else, add its selector here. */
 
 html, body {
   background: #000 !important;
   overflow: hidden !important;
 }
 
-/* El reproductor ocupa toda la pantalla */
+/* The player fills the whole screen */
 #player-container-id, #player, .player-container, ytm-player,
 .html5-video-player, .html5-video-container {
   position: fixed !important;
@@ -24,7 +24,7 @@ video.html5-main-video, .html5-video-player video {
   object-fit: contain !important;
 }
 
-/* Interfaz de la página que no queremos en el coche */
+/* Page UI we don't want in the car */
 ytm-mobile-topbar-renderer, .mobile-topbar-header, header,
 ytm-pivot-bar-renderer, ytm-single-column-watch-next-results-renderer,
 ytm-item-section-renderer, ytm-engagement-panel, .watch-below-the-player,
@@ -34,7 +34,7 @@ ytm-app-promo-renderer, ytm-consent-bump-v2-renderer,
   display: none !important;
 }
 
-/* Anuncios */
+/* Ads */
 ytm-promoted-sparkles-web-renderer, ytm-promoted-video-renderer, ytm-companion-ad-renderer,
 ytm-banner-promo-renderer, ad-slot-renderer, ytm-ad-slot-renderer, #player-ads,
 .ytp-ad-overlay-container, .ytp-ad-image-overlay, .ytp-ad-module, .video-ads {

@@ -9,7 +9,7 @@ import androidx.lifecycle.LifecycleOwner
 import com.autovideo.app.Playback
 import com.autovideo.app.PlaybackService
 
-/** Una conexión con Android Auto. Al desconectar, se para el vídeo. */
+/** A connection to Android Auto. The video stops on disconnect. */
 class AutoVideoSession : Session() {
 
     override fun onCreateScreen(intent: Intent): Screen {
